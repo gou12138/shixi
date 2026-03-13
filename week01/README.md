@@ -9,6 +9,9 @@
 
 
 @triton.jit：GPU 执行的程序，要求张量在内存中连续
+
 offsets：warp中元素的偏移
+
 mask：防止越界
+
 cuda_threat----warp----block----grid
