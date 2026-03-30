@@ -2,7 +2,7 @@ import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer, GenerationConfig
 
 MODEL_NAME = "Qwen/Qwen2.5-0.5B-Instruct"
-MAX_NEW_TOKENS = 32
+MAX_NEW_TOKENS = 16
 TOPK_TO_SHOW = 5
 
 MESSAGES = [
@@ -76,12 +76,11 @@ def main():
     # 5) 一次 forward，观察 logits
     with torch.no_grad():
         outputs = model(**batch, use_cache=True, return_dict=True)
-
-    logits = outputs.logits                  # [batch, seq_len, vocab_size]
-    last_logits = logits[:, -1, :]          # [batch, vocab_size]
-    probs = torch.softmax(last_logits, dim=-1)
-    top_probs, top_ids = torch.topk(probs, k=TOPK_TO_SHOW, dim=-1)
-    greedy_next_id = torch.argmax(last_logits, dim=-1)
+        logits = outputs.logits                  # [batch, seq_len, vocab_size]
+        last_logits = logits[:, -1, :]          # [batch, vocab_size]
+        probs = torch.softmax(last_logits, dim=-1)
+        top_probs, top_ids = torch.topk(probs, k=TOPK_TO_SHOW, dim=-1)
+        greedy_next_id = torch.argmax(last_logits, dim=-1)
 
     print_sep("前向输出")
     print("logits.shape:", tuple(logits.shape))
@@ -100,7 +99,7 @@ def main():
     print("greedy_next_token_id:", greedy_id)
     print("greedy_next_token_text:", repr(greedy_text))
 
-    # 6) 只生成 1 个 token，验证和 greedy 对应关系
+    # 6) 只生成 1 个 token，和 greedy 对齐
     one_step_cfg = GenerationConfig(
         max_new_tokens=1,
         do_sample=False,
@@ -108,7 +107,6 @@ def main():
         pad_token_id=tokenizer.pad_token_id,
         eos_token_id=tokenizer.eos_token_id,
     )
-
     with torch.no_grad():
         one_step_ids = model.generate(**batch, generation_config=one_step_cfg)
 
@@ -130,7 +128,6 @@ def main():
         pad_token_id=tokenizer.pad_token_id,
         eos_token_id=tokenizer.eos_token_id,
     )
-
     with torch.no_grad():
         output_ids = model.generate(**batch, generation_config=full_cfg)
 
